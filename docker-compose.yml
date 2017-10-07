@@ -1,0 +1,50 @@
+version: '2'
+services:
+
+  # The Application
+  php-fpm:
+    build: ./docker/php-fpm
+    volumes:
+      - ./:/var/www
+    links:
+      - redis
+      - postgres
+    environment:
+      - "DB_PORT=${DB_PORT}"
+      - "DB_HOST=${DB_HOST}"
+      - "REDIS_PORT=${REDIS_PORT}"
+      - "REDIS_HOST=${REDIS_HOST}"
+
+  # The Web Server
+  nginx:
+    build: ./docker/nginx
+    volumes_from:
+      - php-fpm
+    ports:
+      - 8080:80
+
+  # The Database
+  postgres:
+    image: postgres:alpine
+    ports:
+      - "${DB_PORT}:5432"
+    environment:
+      POSTGRES_DB: "${DB_NAME}"
+      POSTGRES_USER: "${DB_USER}"
+      POSTGRES_PASSWORD: "${DB_PASS}"
+
+  # Redis
+  redis:
+    image: redis:latest
+    ports:
+      - "${REDIS_PORT}:6379"
+
+  # Beanstalkd
+  beanstalkd:
+    build: ./docker/beanstalkd
+    ports:
+      - "11300:11300"
+    privileged: true
+    links:
+      - php-fpm
+
